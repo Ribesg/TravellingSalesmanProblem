@@ -47,6 +47,8 @@ public class TSPMain {
 			System.out.println("\t--file F N         | F = Path to the file ; N = Name of the data set");
 			System.out.println("\t                   | File handling is not compatible with --nbPoints");
 			System.out.println("\t--write            | Write the result points to a result.txt file");
+			System.out.println();
+			System.out.println("\t--help / -h / help | Show this help");
 		}
 	}
 
@@ -82,6 +84,10 @@ public class TSPMain {
 					dataSetName = args[i + 2];
 				} else if (args[i].equalsIgnoreCase("--write")) {
 					write = true;
+				} else if (args[i].equalsIgnoreCase("help") ||
+				           args[i].equalsIgnoreCase("--help") ||
+				           args[i].equalsIgnoreCase("-h")) {
+					return false;
 				}
 			}
 		} catch (Exception e) {
