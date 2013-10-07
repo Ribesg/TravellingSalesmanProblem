@@ -47,6 +47,7 @@ public class TSPMain {
 			System.out.println("\t--file F N         | F = Path to the file ; N = Name of the data set");
 			System.out.println("\t                   | File handling is not compatible with --nbPoints");
 			System.out.println("\t--write            | Write the result points to a result.txt file");
+			System.out.println("\t                   | --write not available in Benchmark mode");
 			System.out.println();
 			System.out.println("\t--help / -h / help | Show this help");
 		}
