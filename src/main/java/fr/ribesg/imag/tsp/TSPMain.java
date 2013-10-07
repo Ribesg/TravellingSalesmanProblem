@@ -2,6 +2,7 @@ package fr.ribesg.imag.tsp;
 import fr.ribesg.imag.tsp.algorithm.GreedyTSP;
 import fr.ribesg.imag.tsp.collection.PointList;
 import fr.ribesg.imag.tsp.file.Reader;
+import fr.ribesg.imag.tsp.file.Writer;
 import fr.ribesg.imag.tsp.utils.Timer;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -45,6 +46,7 @@ public class TSPMain {
 			System.out.println("\t--file internal N  | N = Name of the data set, uses the internal file");
 			System.out.println("\t--file F N         | F = Path to the file ; N = Name of the data set");
 			System.out.println("\t                   | File handling is not compatible with --nbPoints");
+			System.out.println("\t--write            | Write the result points to a result.txt file");
 		}
 	}
 
@@ -57,6 +59,7 @@ public class TSPMain {
 		int benchmarkAmount = 10;
 		String fileName = null;
 		String dataSetName = null;
+		boolean write = false;
 
 		// Try to get arguments
 		try {
@@ -77,6 +80,8 @@ public class TSPMain {
 				} else if (args[i].equalsIgnoreCase("--file")) {
 					fileName = args[i + 1];
 					dataSetName = args[i + 2];
+				} else if (args[i].equalsIgnoreCase("--write")) {
+					write = true;
 				}
 			}
 		} catch (Exception e) {
@@ -139,6 +144,11 @@ public class TSPMain {
 			System.out.println("\tDone.");
 			System.out.println("\tElapsed time: " + timer.diffString());
 			System.out.println("\tTotal length found: " + result.getTotalLength(true));
+			if (write) {
+				System.out.println("\tWriting result to file...");
+				Writer.write(result);
+				System.out.println("\tDone.");
+			}
 		} else /* Benchmark mode */ {
 			System.out.println("Executing Greedy algorithm in benchmark mode (" + benchmarkAmount + " times)");
 			long totalGreedy = 0;
