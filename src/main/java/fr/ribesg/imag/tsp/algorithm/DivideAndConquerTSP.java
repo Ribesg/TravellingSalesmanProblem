@@ -16,7 +16,6 @@ import java.util.concurrent.Future;
  * point, to prevent stack overflows on big datas, and because it's actually
  * faster.
  * <p/>
- * NOTE: THIS IS STILL A WORK IN PROGRESS /!\
  *
  * @author Ribesg
  */

@@ -1,5 +1,7 @@
 package fr.ribesg.imag.tsp;
+import fr.ribesg.imag.tsp.algorithm.DivideAndConquerTSP;
 import fr.ribesg.imag.tsp.algorithm.GreedyTSP;
+import fr.ribesg.imag.tsp.algorithm.TSP;
 import fr.ribesg.imag.tsp.collection.PointList;
 import fr.ribesg.imag.tsp.file.Reader;
 import fr.ribesg.imag.tsp.file.Writer;
@@ -39,15 +41,17 @@ public class TSPMain {
 	public static void main(final String[] args) {
 		if (!new TSPMain().exec(args)) {
 			System.out.println("Usage: ");
-			System.out.println("\t--nbPoints X       | Choose number of points");
-			System.out.println("\t--nbDivs X         | Choose number of divisions for Divide & Conquer");
-			System.out.println("\t--graph            | Show graphs (not compatible with --bench)");
-			System.out.println("\t--bench X          | Benchmark mode, re-run X times (not compatible with --graph)");
-			System.out.println("\t--file internal N  | N = Name of the data set, uses the internal file");
-			System.out.println("\t--file F N         | F = Path to the file ; N = Name of the data set");
-			System.out.println("\t                   | File handling is not compatible with --nbPoints");
-			System.out.println("\t--write            | Write the result points to a result.txt file");
-			System.out.println("\t                   | --write not available in Benchmark mode");
+			System.out.println("\t--nbPoints X                | Choose number of points");
+			System.out.println("\t--divLimit X                | Choose a threshold for Divide & Conquer");
+			System.out.println("\t--graph                     | Show graphs (not compatible with --bench)");
+			System.out.println("\t--bench X                   | Benchmark mode, re-run X times (not compatible with --graph)");
+			System.out.println("\t--file internal N           | N = Name of the data set, uses the internal file");
+			System.out.println("\t--file F N                  | F = Path to the file ; N = Name of the data set");
+			System.out.println("\t                            | File handling is not compatible with --nbPoints");
+			System.out.println("\t--write                     | Write the result points to a result.txt file");
+			System.out.println("\t                            | --write not available in Benchmark mode");
+			System.out.println("\t--algo <greedy|divide|both> | Write the result points to a result.txt file");
+			System.out.println("\t                            | --write not available in Benchmark mode");
 			System.out.println();
 			System.out.println("\t--help / -h / help | Show this help");
 		}
@@ -56,39 +60,69 @@ public class TSPMain {
 	private boolean exec(final String[] args) {
 		// Initialize values to default
 		int nbPoints = 10_000;
-		int nbDivisions = 3;
+		int divLimit = 20;
 		boolean graphical = false;
 		boolean benchmark = false;
 		int benchmarkAmount = 10;
 		String fileName = null;
 		String dataSetName = null;
 		boolean write = false;
+		boolean greedy = true;
+		boolean divide = true;
 
 		// Try to get arguments
 		try {
+			boolean algo = false;
 			for (int i = 0; i < args.length; i++) {
-				if (args[i].equalsIgnoreCase("--nbpoints")) {
-					nbPoints = Integer.parseInt(args[i + 1]);
-				} else if (args[i].equalsIgnoreCase("--nbdivs")) {
-					nbDivisions = Integer.parseInt(args[i + 1]);
-				} else if (args[i].equalsIgnoreCase("--graph")) {
-					graphical = true;
-				} else if (args[i].equalsIgnoreCase("--bench")) {
-					benchmark = true;
-					benchmarkAmount = Integer.parseInt(args[i + 1]);
-					if (graphical) {
-						// Benchmark mode and graphical mode are not compatible
+				switch (args[i].toLowerCase()) {
+					case "--nbpoints":
+						nbPoints = Integer.parseInt(args[i + 1]);
+						break;
+					case "--divlimit":
+						divLimit = Integer.parseInt(args[i + 1]);
+						break;
+					case "--graph":
+						graphical = true;
+						break;
+					case "--bench":
+						benchmark = true;
+						benchmarkAmount = Integer.parseInt(args[i + 1]);
+						if (graphical) {
+							// Benchmark mode and graphical mode are not compatible
+							return false;
+						}
+						break;
+					case "--file":
+						fileName = args[i + 1];
+						dataSetName = args[i + 2];
+						break;
+					case "--write":
+						write = true;
+						break;
+					case "help":
+					case "--help":
+					case "-h":
 						return false;
-					}
-				} else if (args[i].equalsIgnoreCase("--file")) {
-					fileName = args[i + 1];
-					dataSetName = args[i + 2];
-				} else if (args[i].equalsIgnoreCase("--write")) {
-					write = true;
-				} else if (args[i].equalsIgnoreCase("help") ||
-				           args[i].equalsIgnoreCase("--help") ||
-				           args[i].equalsIgnoreCase("-h")) {
-					return false;
+					case "--algo":
+						switch (args[i + 1].toLowerCase()) {
+							case "greedy":
+								greedy = true;
+								divide = false;
+								break;
+							case "divide":
+								greedy = false;
+								divide = true;
+								break;
+							case "both":
+								greedy = true;
+								divide = true;
+								break;
+							default:
+								return false;
+						}
+						break;
+					default:
+						break;
 				}
 			}
 		} catch (Exception e) {
@@ -102,7 +136,9 @@ public class TSPMain {
 		PointList points;
 
 		// File mode
-		if (fileName != null && dataSetName != null) {
+		if (fileName != null && dataSetName != null)
+
+		{
 			System.out.println("File mode selected");
 			Map<String, PointList> content;
 			if (fileName.equalsIgnoreCase("internal")) {
@@ -134,42 +170,80 @@ public class TSPMain {
 		}
 
 		if (!benchmark) {
-			System.out.println("Executing Greedy algorithm");
-			final Timer timer = new Timer().start();
-			final PointList result = new GreedyTSP().run(points);
-			timer.stop();
-			if (graphical) {
-				final StringBuilder titleBuilder = new StringBuilder();
-				titleBuilder.append("Greedy Algorithm Result on ");
-				titleBuilder.append(points.size());
-				titleBuilder.append(" points - Total length: ");
-				titleBuilder.append(getFormatter().format(result.getTotalLength(true)));
-				titleBuilder.append(" - Elapsed time: ");
-				titleBuilder.append(timer.diffString());
-				this.show(titleBuilder.toString(), result);
-			}
-			System.out.println("\tDone.");
-			System.out.println("\tElapsed time: " + timer.diffString());
-			System.out.println("\tTotal length found: " + result.getTotalLength(true));
-			if (write) {
-				System.out.println("\tWriting result to file...");
-				Writer.write(result);
+			if (greedy) {
+				System.out.println("Executing Greedy algorithm");
+				final Timer timer1 = new Timer().start();
+				final PointList result1 = new GreedyTSP().run(points);
+				timer1.stop();
+				if (graphical) {
+					final StringBuilder titleBuilder = new StringBuilder();
+					titleBuilder.append("Greedy Algorithm Result on ");
+					titleBuilder.append(points.size());
+					titleBuilder.append(" points - Total length: ");
+					titleBuilder.append(getFormatter().format(result1.getTotalLength(true)));
+					titleBuilder.append(" - Elapsed time: ");
+					titleBuilder.append(timer1.diffString());
+					this.show(titleBuilder.toString(), result1);
+				}
 				System.out.println("\tDone.");
+				System.out.println("\tElapsed time: " + timer1.diffString());
+				System.out.println("\tTotal length found: " + result1.getTotalLength(true));
+				if (write) {
+					System.out.println("\tWriting result to file...");
+					Writer.write(result1, "resultG.txt");
+					System.out.println("\tDone.");
+				}
+			}
+			// ############ //
+			if (divide) {
+				System.out.println("Executing Divide & Conquer algorithm");
+				final Timer timer2 = new Timer().start();
+				final PointList result2 = new DivideAndConquerTSP(divLimit).run(points);
+				timer2.stop();
+				if (graphical) {
+					final StringBuilder titleBuilder = new StringBuilder();
+					titleBuilder.append("Divide & Conquer Algorithm Result on ");
+					titleBuilder.append(points.size());
+					titleBuilder.append(" points - Total length: ");
+					titleBuilder.append(getFormatter().format(result2.getTotalLength(true)));
+					titleBuilder.append(" - Elapsed time: ");
+					titleBuilder.append(timer2.diffString());
+					this.show(titleBuilder.toString(), result2);
+				}
+				System.out.println("\tDone.");
+				System.out.println("\tElapsed time: " + timer2.diffString());
+				System.out.println("\tTotal length found: " + result2.getTotalLength(true));
+				if (write) {
+					System.out.println("\tWriting result to file...");
+					Writer.write(result2, "resultD&C.txt");
+					System.out.println("\tDone.");
+				}
 			}
 		} else /* Benchmark mode */ {
-			System.out.println("Executing Greedy algorithm in benchmark mode (" + benchmarkAmount + " times)");
+			System.out.println("Executing benchmark mode (" + benchmarkAmount + " times)");
 			long totalGreedy = 0;
+			final TSP greedyAlgo = new GreedyTSP();
+			final TSP divideAlgo = new DivideAndConquerTSP(divLimit);
+			long totalDivide = 0;
 			for (int i = 0; i < benchmarkAmount; i++) {
-				System.out.print("\tExecution number " + i + "... ");
-				final Timer timer = new Timer().start();
-				final PointList result = new GreedyTSP().run(points);
-				totalGreedy += timer.stop().nanoDiff();
+				System.out.print("\tExecution Greedy number " + i + "... ");
+				final Timer timer1 = new Timer().start();
+				greedyAlgo.run(points);
+				totalGreedy += timer1.stop().nanoDiff();
+				System.out.println("Done.");
+				System.out.print("\tExecution Divide and Conquer number " + i + "... ");
+				final Timer timer2 = new Timer().start();
+				divideAlgo.run(points);
+				totalDivide += timer2.stop().nanoDiff();
 				System.out.println("Done.");
 			}
 			final long averageGreedy = totalGreedy / benchmarkAmount;
+			final long averageDivide = totalDivide / benchmarkAmount;
 			System.out.println("Benchmark terminated! Results:");
 			System.out.println("\tAverage Greedy Algorithm duration: " + Timer.parseDiff(averageGreedy));
+			System.out.println("\tAverage Divide Algorithm duration: " + Timer.parseDiff(averageDivide));
 		}
+
 		return true;
 	}
 
